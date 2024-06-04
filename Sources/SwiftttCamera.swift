@@ -144,7 +144,6 @@ extension SwiftttCamera {
             session = AVCaptureSession()
             session.beginConfiguration()  // Begin configuration to setup session
             session.sessionPreset = .photo  // Set the session preset
-
             // Use a discovery session to find and prioritize the triple camera
             let discoverySession = AVCaptureDevice.DiscoverySession(
                 deviceTypes: [
@@ -158,35 +157,27 @@ extension SwiftttCamera {
                 mediaType: .video,
                 position: .back
             )
-
             guard let device = discoverySession.devices.first else {
                 print("No compatible device found")
                 session.commitConfiguration()
                 return
             }
-
             do {
                 let deviceInput = try AVCaptureDeviceInput(device: device)
-
                 if session.canAddInput(deviceInput) {
                     session.addInput(deviceInput)
                 }
-
                 if device.isFocusModeSupported(.continuousAutoFocus) {
                     try device.lockForConfiguration()
                     device.focusMode = .continuousAutoFocus
                     device.unlockForConfiguration()
                 }
-
                 photoOutput = AVCapturePhotoOutput()
                 if session.canAddOutput(photoOutput) {
                     session.addOutput(photoOutput)
                 }
-
-                session.commitConfiguration()  // Commit the session configuration
-
+                session.commitConfiguration()
                 deviceOrientation = DeviceOrientation()
-
                 if isViewLoaded && view.window != nil {
                     startRunning()
                     insertPreviewLayer()
@@ -201,7 +192,6 @@ extension SwiftttCamera {
             delegate?.userDeniedCameraPermissions(forCameraController: self)
         }
     }
-
 
     private func teardownCaptureSession() {
         guard session != nil else { return }
