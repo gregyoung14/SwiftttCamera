@@ -25,12 +25,16 @@ public extension AVCaptureSession {
     /// Starts running the session, if it's not running already.
     func startRunningIfNeeded() {
         guard !isRunning else { return }
-        startRunning()
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.startRunning()
+        }
     }
 
     /// Stops running the session, if it's running.
     func stopRunningIfNeeded() {
         guard isRunning else { return }
-        stopRunning()
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.stopRunning()
+        }
     }
 }
