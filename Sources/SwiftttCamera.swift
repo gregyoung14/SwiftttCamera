@@ -141,52 +141,54 @@ extension SwiftttCamera {
 
     private func handleDeviceAuthorization(_ authorized: Bool) {
         if authorized {
-            session = AVCaptureSession()
-            session.beginConfiguration()  // Begin configuration to setup session
-            session.sessionPreset = .photo  // Set the session preset
-            // Use a discovery session to find and prioritize the triple camera
-            let discoverySession = AVCaptureDevice.DiscoverySession(
-                deviceTypes: [
-                    .builtInTripleCamera,
-                    .builtInDualWideCamera,
-                    .builtInDualCamera,
-                    .builtInUltraWideCamera,
-                    .builtInWideAngleCamera,
-                    .builtInTelephotoCamera
-                ],
-                mediaType: .video,
-                position: .back
-            )
-            guard let device = discoverySession.devices.first else {
-                print("No compatible device found")
-                session.commitConfiguration()
-                return
-            }
-            do {
-                let deviceInput = try AVCaptureDeviceInput(device: device)
-                if session.canAddInput(deviceInput) {
-                    session.addInput(deviceInput)
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.session = AVCaptureSession()
+                self.session.beginConfiguration()  // Begin configuration to setup session
+                self.session.sessionPreset = .photo  // Set the session preset
+                // Use a discovery session to find and prioritize the triple camera
+                let discoverySession = AVCaptureDevice.DiscoverySession(
+                    deviceTypes: [
+                        .builtInTripleCamera,
+                        .builtInDualWideCamera,
+                        .builtInDualCamera,
+                        .builtInUltraWideCamera,
+                        .builtInWideAngleCamera,
+                        .builtInTelephotoCamera
+                    ],
+                    mediaType: .video,
+                    position: .back
+                )
+                guard let device = discoverySession.devices.first else {
+                    print("No compatible device found")
+                    self.session.commitConfiguration()
+                    return
                 }
-                if device.isFocusModeSupported(.continuousAutoFocus) {
-                    try device.lockForConfiguration()
-                    device.focusMode = .continuousAutoFocus
-                    device.unlockForConfiguration()
+                do {
+                    let deviceInput = try AVCaptureDeviceInput(device: device)
+                    if self.session.canAddInput(deviceInput) {
+                        self.session.addInput(deviceInput)
+                    }
+                    if device.isFocusModeSupported(.continuousAutoFocus) {
+                        try device.lockForConfiguration()
+                        device.focusMode = .continuousAutoFocus
+                        device.unlockForConfiguration()
+                    }
+                    self.photoOutput = AVCapturePhotoOutput()
+                    if self.session.canAddOutput(self.photoOutput) {
+                        self.session.addOutput(self.photoOutput)
+                    }
+                    self.session.commitConfiguration()
+                    self.deviceOrientation = DeviceOrientation()
+                    if self.isViewLoaded && self.view.window != nil {
+                        self.startRunning()
+                        self.insertPreviewLayer()
+                        self.setPreviewVideoOrientation()
+                        self.resetZoom()
+                    }
+                } catch {
+                    print("Error configuring camera device: \(error)")
+                    self.session.commitConfiguration()
                 }
-                photoOutput = AVCapturePhotoOutput()
-                if session.canAddOutput(photoOutput) {
-                    session.addOutput(photoOutput)
-                }
-                session.commitConfiguration()
-                deviceOrientation = DeviceOrientation()
-                if isViewLoaded && view.window != nil {
-                    startRunning()
-                    insertPreviewLayer()
-                    setPreviewVideoOrientation()
-                    resetZoom()
-                }
-            } catch {
-                print("Error configuring camera device: \(error)")
-                session.commitConfiguration()
             }
         } else {
             delegate?.userDeniedCameraPermissions(forCameraController: self)
@@ -301,7 +303,7 @@ extension SwiftttCamera {
         #else
         guard let videoConnection: AVCaptureConnection = currentCaptureConnection() else { preconditionFailure("videoConnection is nil in physical device") }
         if videoConnection.isVideoOrientationSupported {
-            videoConnection.videoOrientation = currentCaptureVideoOrientationForDevice()
+            videoConnection.videoOrientation = .portrait
         }
         if videoConnection.isVideoMirroringSupported {
             videoConnection.isVideoMirrored = cameraDevice == .front
