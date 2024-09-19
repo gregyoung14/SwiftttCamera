@@ -115,7 +115,9 @@ public class SwiftttCamera : UIViewController, CameraProtocol {
 // MARK: - Capture Session Management
 extension SwiftttCamera {
     public func startRunning() {
-        session?.startRunningIfNeeded()
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.session?.startRunningIfNeeded()
+        }
     }
 
     public func stopRunning() {
@@ -163,31 +165,33 @@ extension SwiftttCamera {
                     self.session.commitConfiguration()
                     return
                 }
-                do {
-                    let deviceInput = try AVCaptureDeviceInput(device: device)
-                    if self.session.canAddInput(deviceInput) {
-                        self.session.addInput(deviceInput)
+                DispatchQueue.main.async {
+                    do {
+                        let deviceInput = try AVCaptureDeviceInput(device: device)
+                        if self.session.canAddInput(deviceInput) {
+                            self.session.addInput(deviceInput)
+                        }
+                        if device.isFocusModeSupported(.continuousAutoFocus) {
+                            try device.lockForConfiguration()
+                            device.focusMode = .continuousAutoFocus
+                            device.unlockForConfiguration()
+                        }
+                        self.photoOutput = AVCapturePhotoOutput()
+                        if self.session.canAddOutput(self.photoOutput) {
+                            self.session.addOutput(self.photoOutput)
+                        }
+                        self.session.commitConfiguration()
+                        self.deviceOrientation = DeviceOrientation()
+                        if self.isViewLoaded && self.view.window != nil {
+                            self.startRunning()
+                            self.insertPreviewLayer()
+                            self.setPreviewVideoOrientation()
+                            self.resetZoom()
+                        }
+                    } catch {
+                        print("Error configuring camera device: \(error)")
+                        self.session.commitConfiguration()
                     }
-                    if device.isFocusModeSupported(.continuousAutoFocus) {
-                        try device.lockForConfiguration()
-                        device.focusMode = .continuousAutoFocus
-                        device.unlockForConfiguration()
-                    }
-                    self.photoOutput = AVCapturePhotoOutput()
-                    if self.session.canAddOutput(self.photoOutput) {
-                        self.session.addOutput(self.photoOutput)
-                    }
-                    self.session.commitConfiguration()
-                    self.deviceOrientation = DeviceOrientation()
-                    if self.isViewLoaded && self.view.window != nil {
-                        self.startRunning()
-                        self.insertPreviewLayer()
-                        self.setPreviewVideoOrientation()
-                        self.resetZoom()
-                    }
-                } catch {
-                    print("Error configuring camera device: \(error)")
-                    self.session.commitConfiguration()
                 }
             }
         } else {
