@@ -45,3 +45,17 @@ obj/
 target/
 venv/
 weights/
+*.csv
+*.gif
+*.jpeg
+*.jpg
+*.pdf
+*.png
+*.webp
+*.zip.gz
+assets/
+build/
+dist/
+images/
+photos/
+videos/
